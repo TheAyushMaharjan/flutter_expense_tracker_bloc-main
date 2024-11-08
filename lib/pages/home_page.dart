@@ -12,10 +12,10 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
+        title: const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Hello, Good Morning'),
+            Text('Hello, User'),
             // IconButton(
             //   icon: const Icon(Icons.settings),
             //   onPressed: () {

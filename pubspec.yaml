@@ -12,7 +12,6 @@ dependencies:
   figma_squircle: ^0.5.3
   flutter:
     sdk: flutter
-  flutter_bloc: ^8.1.4
   intl: ^0.19.0
   rxdart: ^0.27.7
   shared_preferences: ^2.3.2
@@ -21,6 +20,8 @@ dependencies:
   firebase_auth: ^5.3.1
   google_fonts: ^6.2.1
   fl_chart: ^0.69.0
+  cloud_firestore: ^5.4.5
+  flutter_bloc: ^8.1.6
 
 dev_dependencies:
   flutter_test:

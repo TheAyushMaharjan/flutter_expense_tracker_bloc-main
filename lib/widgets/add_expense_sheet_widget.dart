@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_expense_tracker_bloc/blocs/expense_form/expense_form_bloc.dart';
 import 'package:intl/intl.dart';
-
 import '../models/category.dart';
 import 'loading_widget.dart';
 import 'text_form_field_widget.dart';
+import '../blocs/expense_form/expense_form_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddExpenseSheetWidget extends StatelessWidget {
   const AddExpenseSheetWidget({super.key});
@@ -47,12 +47,35 @@ class AddButtonWidget extends StatelessWidget {
     return FilledButton(
       onPressed: isLoading || !state.isFormValid
           ? null
-          : () {
-              context.read<ExpenseFormBloc>().add(const ExpenseSubmitted());
-              Navigator.pop(context);
-            },
+          : () async {
+        // Add the expense to Firestore
+        await _addExpenseToFirestore(context, state);
+
+        // Dispatch the ExpenseSubmitted event
+        context.read<ExpenseFormBloc>().add(ExpenseSubmitted());
+
+        // After adding the expense, close the sheet
+        Navigator.pop(context);
+      },
       child: isLoading ? const LoadingWidget() : const Text('Add Expense'),
     );
+  }
+
+  Future<void> _addExpenseToFirestore(BuildContext context, ExpenseFormState state) async {
+    try {
+      final expenseData = {
+        'title': state.title,
+        'amount': state.amount,
+        'date': state.date,
+        'category': state.category.toName, // Ensure this is in a suitable format for your Category enum
+      };
+
+      // Access Firestore and add the expense data
+      await FirebaseFirestore.instance.collection('expenses').add(expenseData);
+    } catch (e) {
+      // Handle error (e.g., show a message to the user)
+      print('Error adding expense to Firestore: $e');
+    }
   }
 }
 
@@ -62,15 +85,10 @@ class DateFieldWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
     final bloc = context.read<ExpenseFormBloc>();
     final state = context.watch<ExpenseFormBloc>().state;
 
-    final formattedDate = state.initialExpense == null
-        ? DateFormat('dd/MM/yyyy').format(state.date)
-        : DateFormat('dd/MM/yyyy').format(state.initialExpense!.date);
+    final formattedDate = DateFormat('dd/MM/yyyy').format(state.date);
 
     return GestureDetector(
       onTap: () async {
@@ -87,18 +105,16 @@ class DateFieldWidget extends StatelessWidget {
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'Date',
-            style: textTheme.labelLarge?.copyWith(
-              color: colorScheme.onSurface.withOpacity(0.4),
-              height: 1,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.4),
               fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 10),
-          Text(formattedDate, style: textTheme.titleLarge),
+          Text(formattedDate, style: theme.textTheme.titleLarge),
         ],
       ),
     );
@@ -116,8 +132,8 @@ class AmountFieldWidget extends StatelessWidget {
       label: 'Amount',
       hint: '0.00',
       prefixText: 'Rs',
-      enabled: !state.status.isLoading,
-      initialValue: state.initialExpense?.amount.toString(),
+      enabled: state.status != ExpenseFormStatus.loading,
+      initialValue: state.amount.toString(),
       onChanged: (value) {
         context.read<ExpenseFormBloc>().add(ExpenseAmountChanged(value));
       },
@@ -130,17 +146,14 @@ class TitleFieldWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final state = context.watch<ExpenseFormBloc>().state;
 
     return TextFormField(
-      style: textTheme.displaySmall?.copyWith(fontSize: 30),
       onChanged: (value) {
         context.read<ExpenseFormBloc>().add(ExpenseTitleChanged(value));
       },
-      initialValue: state.initialExpense?.title,
-      decoration: InputDecoration(
-        enabled: !state.status.isLoading,
+      initialValue: state.title,
+      decoration: const InputDecoration(
         border: InputBorder.none,
         hintText: 'Expense Title',
       ),
@@ -153,41 +166,18 @@ class CategoryChoicesWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
     final bloc = context.read<ExpenseFormBloc>();
     final state = context.watch<ExpenseFormBloc>().state;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Select Category',
-          style: textTheme.labelLarge?.copyWith(
-            color: colorScheme.onSurface.withOpacity(0.4),
-            height: 1,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          runSpacing: 0,
-          children: Category.values
-              .where((category) => category != Category.all)
-              .map((currentCategory) => ChoiceChip(
-                    label: Text(currentCategory.toName),
-                    selected: currentCategory == state.category,
-                    onSelected: (_) => bloc.add(
-                      ExpenseCategoryChanged(currentCategory),
-                    ),
-                  ))
-              .toList(),
-        ),
-      ],
+    return Wrap(
+      spacing: 10,
+      children: Category.values
+          .map((category) => ChoiceChip(
+        label: Text(category.toName),
+        selected: category == state.category,
+        onSelected: (_) => bloc.add(ExpenseCategoryChanged(category)),
+      ))
+          .toList(),
     );
   }
 }

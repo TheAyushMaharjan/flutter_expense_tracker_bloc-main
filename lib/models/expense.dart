@@ -1,7 +1,6 @@
 // ignore_for_file: must_be_immutable
 
 import 'package:equatable/equatable.dart';
-
 import 'category.dart';
 
 class Expense extends Equatable {
@@ -21,41 +20,49 @@ class Expense extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        amount,
-        date,
-        category,
-      ];
+    id,
+    title,
+    amount,
+    date,
+    category,
+  ];
 
   factory Expense.fromJson(Map<String, dynamic> json) {
     return Expense(
-      id: json['id'],
-      title: json['title'],
-      amount: double.tryParse(json['amount']) ?? 0.0,
-      date: DateTime.fromMillisecondsSinceEpoch(json['date']),
+      id: json['id'] as String,
+      title: json['title'] as String,
+      amount: _parseAmount(json['amount']),
+      date: DateTime.fromMillisecondsSinceEpoch(json['date'] as int),
       category: Category.fromJson(json['category']),
     );
+  }
+
+  static double _parseAmount(dynamic amount) {
+    if (amount is double) return amount;
+    if (amount is int) return amount.toDouble();
+    if (amount is String) return double.tryParse(amount) ?? 0.0;
+    return 0.0;
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'title': title,
-      'amount': amount.toString(),
+      'amount': amount,
       'date': date.millisecondsSinceEpoch,
       'category': category.toJson(),
     };
   }
 
   Expense copyWith({
+    String? id,
     String? title,
     double? amount,
     DateTime? date,
     Category? category,
   }) {
     return Expense(
-      id: id,
+      id: id ?? this.id,
       title: title ?? this.title,
       amount: amount ?? this.amount,
       date: date ?? this.date,

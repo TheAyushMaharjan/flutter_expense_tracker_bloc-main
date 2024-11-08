@@ -3,10 +3,9 @@ part of 'expense_form_bloc.dart';
 enum ExpenseFormStatus { initial, loading, success, failure }
 
 extension ExpenseFormStatusX on ExpenseFormStatus {
-  bool get isLoading => [
-        ExpenseFormStatus.loading,
-        ExpenseFormStatus.success,
-      ].contains(this);
+  bool get isLoading => this == ExpenseFormStatus.loading;
+  bool get isSuccess => this == ExpenseFormStatus.success;
+  bool get isFailure => this == ExpenseFormStatus.failure;
 }
 
 final class ExpenseFormState extends Equatable {
@@ -17,6 +16,7 @@ final class ExpenseFormState extends Equatable {
     this.category = Category.other,
     this.status = ExpenseFormStatus.initial,
     this.initialExpense,
+    this.error = '',
   });
 
   final String? title;
@@ -25,6 +25,7 @@ final class ExpenseFormState extends Equatable {
   final Category category;
   final ExpenseFormStatus status;
   final Expense? initialExpense;
+  final String error; // Add error field for error messages
 
   ExpenseFormState copyWith({
     String? title,
@@ -33,6 +34,7 @@ final class ExpenseFormState extends Equatable {
     Category? category,
     ExpenseFormStatus? status,
     Expense? initialExpense,
+    String? error,
   }) {
     return ExpenseFormState(
       title: title ?? this.title,
@@ -41,18 +43,20 @@ final class ExpenseFormState extends Equatable {
       category: category ?? this.category,
       status: status ?? this.status,
       initialExpense: initialExpense ?? this.initialExpense,
+      error: error ?? this.error, // Include error in copyWith
     );
   }
 
   @override
   List<Object?> get props => [
-        title,
-        amount,
-        date,
-        category,
-        status,
-        initialExpense,
-      ];
+    title,
+    amount,
+    date,
+    category,
+    status,
+    initialExpense,
+    error,
+  ];
 
-  bool get isFormValid => title != null && amount != null;
+  bool get isFormValid => title != null && title!.isNotEmpty && amount != null && amount! > 0;
 }
